@@ -1,0 +1,24 @@
+{
+  "name": "CRT Timer Test",
+  "short_name": "CRT Timer",
+  "description": "CRT trading session timer with local timezone, New York comparison, weekend mode and 10-minute alerts",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#080f2b",
+  "theme_color": "#080f2b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
