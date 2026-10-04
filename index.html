@@ -1,1 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#080f2b">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>CRT Timer</title>
 
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
+    #080f2b;
+  background-size: 80px 80px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: white;
+  padding: 30px 20px;
+}
+
+.container {
+  width: 100%;
+  max-width: 1000px;
+  margin: auto;
+}
+
+.topbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 18px;
+}
+
+.notify {
+  border: 1px solid #263d78;
+  background: #0c1739;
+  color: white;
+  border-radius: 14px;
+  padding: 11px 15px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notify:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28px;
+}
+
+.card {
+  position: relative;
+  min-height: 430px;
+  padding: 42px 38px;
+  border-radius: 38px;
+  background: linear-gradient(145deg, #1d2e63, #172653);
+  border: 2px solid #263d78;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.04),
+    0 15px 40px rgba(0,0,0,.20);
+}
+
+.card.active {
+  border: 3px solid #f5b82e;
+  box-shadow:
+    0 0 25px rgba(245,184,46,.15),
+    inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.number {
+  position: absolute;
+  right: 35px;
+  top: 27px;
+  font-size: 30px;
+  color: #b8c3df;
+}
+
+.icon-box {
+  width: 116px;
+  height: 116px;
+  border-radius: 30px;
+  background: #0c1739;
+  border: 2px solid #263d78;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 35px;
+}
+
+.icon {
+  font-size: 62px;
+  line-height: 1;
+}
+
+.time {
+  font-size: clamp(42px, 5vw, 62px);
+  font-weight: 800;
+  color: #f6c34d;
+  letter-spacing: -2px;
+  margin-bottom: 10px;
+}
+
+.timezone {
+  font-size: 24px;
+  color: #bfc9df;
+  margin-bottom: 32px;
+  word-break: break-word;
+}
+
+.new-york {
+  font-size: 28px;
+  color: white;
+}
+
+.new-york strong {
+  font-weight: 800;
+}
+
+.countdown {
+  position: absolute;
+  left: 45px;
+  bottom: -25px;
+  padding: 15px 30px;
+  border-radius: 35px;
+  background: #f5b82e;
+  color: #111827;
+  font-size: 22px;
+  font-weight: 800;
+  white-space: nowrap;
+  z-index: 20;
+  box-shadow: 0 8px 20px rgba(245,184,46,.30);
+}
+
+.weekend {
+  min-height: 80vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: clamp(38px, 7vw, 72px);
+  font-weight: 800;
+}
+
+@media (max-width: 700px) {
+  body {
+    padding: 18px 12px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+
+  .card {
+    min-height: 360px;
+    padding: 30px 28px;
+    border-radius: 30px;
+  }
+
+  .icon-box {
+    width: 90px;
+    height: 90px;
+    border-radius: 24px;
+    margin-bottom: 28px;
+  }
+
+  .icon {
+    font-size: 48px;
+  }
+
+  .time {
+    font-size: 45px;
+  }
+
+  .timezone,
+  .new-york {
+    font-size: 22px;
+  }
+
+  .number {
+    right: 25px;
+    top: 22px;
+  }
+
+  .countdown {
+    left: 28px;
+    bottom: -22px;
+    font-size: 18px;
+    padding: 13px 22px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<main class="container">
+
+  <div class="topbar" id="topbar">
+    <button class="notify" id="notifyButton">
+      🔔 Enable 10-minute alerts
+    </button>
+  </div>
+
+  <section class="grid" id="timerGrid"></section>
+
+</main>
+
+<script>
+
+const sessions = [
+  { hour: 20, minute: 0 },
+  { hour: 21, minute: 0 },
+  { hour: 3, minute: 0 },
+  { hour: 6, minute: 0 },
+  { hour: 9, minute: 0 },
+  { hour: 10, minute: 0 }
+];
+
+const LOCAL_TZ =
+  Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+
+const NEW_YORK_TZ = "America/New_York";
+
+const grid = document.getElementById("timerGrid");
+const topbar = document.getElementById("topbar");
+const notifyButton = document.getElementById("notifyButton");
+
+let scheduledNotificationKey = null;
+
+
+/* ---------- TIMEZONE HELPERS ---------- */
+
+function partsInZone(date, tz) {
+
+  const parts = {};
+
+  new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    hour12: false
+  })
+  .formatToParts(date)
+  .forEach(part => {
+
+    if (part.type !== "literal") {
+      parts[part.type] = Number(part.value);
+    }
+
+  });
+
+  if (parts.hour === 24) {
+    parts.hour = 0;
+  }
+
+  return parts;
+}
+
+
+function zoneOffsetMinutes(date, tz) {
+
+  const p = partsInZone(date, tz);
+
+  const asUTC = Date.UTC(
+    p.year,
+    p.month - 1,
+    p.day,
+    p.hour,
+    p.minute,
+    p.second
+  );
+
+  return Math.round(
+    (asUTC - date.getTime()) / 60000
+  );
+}
+
+
+function zonedDate(year, month, day, hour, minute, tz) {
+
+  let guess = Date.UTC(
+    year,
+    month - 1,
+    day,
+    hour,
+    minute,
+    0
+  );
+
+  for (let i = 0; i < 3; i++) {
+
+    const offset = zoneOffsetMinutes(
+      new Date(guess),
+      tz
+    );
+
+    guess =
+      Date.UTC(
+        year,
+        month - 1,
+        day,
+        hour,
+        minute,
+        0
+      ) -
+      offset * 60000;
+  }
+
+  return new Date(guess);
+}
+
+
+/* ---------- NEXT SESSION ---------- */
+
+function getNextSession(session) {
+
+  const now = new Date();
+
+  const ny = partsInZone(
+    now,
+    NEW_YORK_TZ
+  );
+
+  let target = zonedDate(
+    ny.year,
+    ny.month,
+    ny.day,
+    session.hour,
+    session.minute,
+    NEW_YORK_TZ
+  );
+
+  if (target <= now) {
+
+    const tomorrow = new Date(
+      Date.UTC(
+        ny.year,
+        ny.month - 1,
+        ny.day + 1
+      )
+    );
+
+    const tomorrowNY =
+      partsInZone(
+        tomorrow,
+        NEW_YORK_TZ
+      );
+
+    target = zonedDate(
+      tomorrowNY.year,
+      tomorrowNY.month,
+      tomorrowNY.day,
+      session.hour,
+      session.minute,
+      NEW_YORK_TZ
+    );
+  }
+
+  return target;
+}
+
+
+/* ---------- FORMATTING ---------- */
+
+function formatLocal(date) {
+
+  return date.toLocaleTimeString(
+    "en-US",
+    {
+      timeZone: LOCAL_TZ,
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    }
+  );
+}
+
+
+function formatNewYork(date) {
+
+  return date.toLocaleTimeString(
+    "en-US",
+    {
+      timeZone: NEW_YORK_TZ,
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true
+    }
+  );
+}
+
+
+function getIcon(hour) {
+
+  if (hour >= 18 || hour < 6) {
+    return "🌙";
+  }
+
+  if (hour >= 6 && hour < 8) {
+    return "🌅";
+  }
+
+  return "☀️";
+}
+
+
+function countdown(ms) {
+
+  let seconds =
+    Math.max(
+      0,
+      Math.floor(ms / 1000)
+    );
+
+  const hours =
+    Math.floor(seconds / 3600);
+
+  seconds %= 3600;
+
+  const minutes =
+    Math.floor(seconds / 60);
+
+  seconds %= 60;
+
+  if (hours > 0) {
+    return `Next in ${hours}h ${minutes}m`;
+  }
+
+  if (minutes > 0) {
+    return `Next in ${minutes}m ${seconds}s`;
+  }
+
+  return `Next in ${seconds}s`;
+}
+
+
+/* ---------- WEEKEND ---------- */
+
+function isWeekend() {
+
+  const weekday =
+    new Intl.DateTimeFormat(
+      "en-US",
+      {
+        timeZone: LOCAL_TZ,
+        weekday: "short"
+      }
+    ).format(new Date());
+
+  return (
+    weekday === "Sat" ||
+    weekday === "Sun"
+  );
+}
+
+
+function setWeekend() {
+
+  topbar.style.display = "none";
+
+  grid.className = "weekend";
+
+  grid.innerHTML =
+    "<div>Enjoy your weekend</div>";
+}
+
+
+/* ---------- NOTIFICATIONS ---------- */
+
+function updateNotificationButton() {
+
+  if (!("Notification" in window)) {
+
+    notifyButton.textContent =
+      "Notifications not supported";
+
+    notifyButton.disabled = true;
+
+    return;
+  }
+
+  if (
+    Notification.permission ===
+    "granted"
+  ) {
+
+    notifyButton.textContent =
+      "🔔 10-minute alerts enabled";
+  }
+}
+
+
+async function enableNotifications() {
+
+  if (!("Notification" in window)) {
+
+    alert(
+      "This browser does not support notifications."
+    );
+
+    return;
+  }
+
+  const permission =
+    await Notification.requestPermission();
+
+  if (permission === "granted") {
+
+    notifyButton.textContent =
+      "🔔 10-minute alerts enabled";
+
+    scheduleNextNotification();
+
+  } else {
+
+    notifyButton.textContent =
+      "🔕 Alerts not enabled";
+  }
+}
+
+
+async function scheduleNextNotification() {
+
+  if (
+    Notification.permission !== "granted" ||
+    isWeekend()
+  ) {
+    return;
+  }
+
+  const upcoming =
+    sessions
+      .map((session, index) => ({
+        index,
+        target: getNextSession(session)
+      }))
+      .sort(
+        (a, b) =>
+          a.target - b.target
+      );
+
+  const next = upcoming[0];
+
+  const notifyAt =
+    next.target.getTime() -
+    10 * 60 * 1000;
+
+  const key =
+    next.target.toISOString();
+
+  if (
+    scheduledNotificationKey === key
+  ) {
+    return;
+  }
+
+  const delay =
+    notifyAt - Date.now();
+
+  if (delay <= 0) {
+    return;
+  }
+
+  scheduledNotificationKey = key;
+
+  setTimeout(async () => {
+
+    try {
+
+      if (
+        Notification.permission ===
+        "granted"
+      ) {
+
+        const registration =
+          await navigator.serviceWorker.ready;
+
+        await registration.showNotification(
+          "CRT Timer",
+          {
+            body:
+              "Session starts in 10 minutes.",
+            tag:
+              "crt-10-minute"
+          }
+        );
+      }
+
+    } catch (error) {
+
+      if (
+        Notification.permission ===
+        "granted"
+      ) {
+
+        new Notification(
+          "CRT Timer",
+          {
+            body:
+              "Session starts in 10 minutes."
+          }
+        );
+      }
+    }
+
+    scheduledNotificationKey = null;
+
+    scheduleNextNotification();
+
+  }, delay);
+}
+
+
+/* ---------- MAIN TIMER ---------- */
+
+function updateTimer() {
+
+  if (isWeekend()) {
+
+    setWeekend();
+
+    return;
+  }
+
+  topbar.style.display = "flex";
+
+  grid.className = "grid";
+
+  const now = new Date();
+
+  const upcoming =
+    sessions.map(
+      (session, index) => ({
+        session,
+        target:
+          getNextSession(session),
+        index
+      })
+    );
+
+  let nextIndex = 0;
+
+  for (
+    let i = 1;
+    i < upcoming.length;
+    i++
+  ) {
+
+    if (
+      upcoming[i].target <
+      upcoming[nextIndex].target
+    ) {
+
+      nextIndex = i;
+    }
+  }
+
+  grid.innerHTML = "";
+
+  upcoming.forEach(
+    (item, index) => {
+
+      const isNext =
+        index === nextIndex;
+
+      const card =
+        document.createElement("article");
+
+      card.className =
+        isNext
+          ? "card active"
+          : "card";
+
+      card.innerHTML = `
+
+        <span class="number">
+          ${index + 1}
+        </span>
+
+        <div class="icon-box">
+          <span class="icon">
+            ${getIcon(item.session.hour)}
+          </span>
+        </div>
+
+        <div class="time">
+          ${formatLocal(item.target)}
+        </div>
+
+        <div class="timezone">
+          ${LOCAL_TZ}
+        </div>
+
+        <div class="new-york">
+          New York:
+          <strong>
+            ${formatNewYork(item.target)}
+          </strong>
+        </div>
+
+        ${
+          isNext
+            ? `
+              <div class="countdown">
+                ${countdown(
+                  item.target - now
+                )}
+              </div>
+            `
+            : ""
+        }
+
+      `;
+
+      grid.appendChild(card);
+    }
+  );
+
+  scheduleNextNotification();
+}
+
+
+/* ---------- START ---------- */
+
+notifyButton.addEventListener(
+  "click",
+  enableNotifications
+);
+
+updateNotificationButton();
+
+updateTimer();
+
+setInterval(
+  updateTimer,
+  1000
+);
+
+
+/* ---------- SERVICE WORKER ---------- */
+
+if ("serviceWorker" in navigator) {
+
+  window.addEventListener(
+    "load",
+    () => {
+
+      navigator.serviceWorker.register(
+        "./service-worker.js"
+      );
+
+    }
+  );
+}
+
+</script>
+
+</body>
+</html>
