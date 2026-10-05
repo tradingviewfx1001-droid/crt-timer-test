@@ -36,6 +36,11 @@ body {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 18px;
+  position: relative;
+}
+
+.notify-wrap {
+  position: relative;
 }
 
 .notify {
@@ -56,6 +61,41 @@ body {
 .notify:disabled {
   opacity: .55;
   cursor: default;
+}
+
+.notify-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 230px;
+  background: #0c1739;
+  border: 1px solid #263d78;
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 0 15px 35px rgba(0,0,0,.35);
+  z-index: 100;
+}
+
+.notify-menu.show {
+  display: block;
+}
+
+.notify-option {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: white;
+  text-align: left;
+  padding: 13px 12px;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notify-option:hover {
+  background: #172653;
 }
 
 .grid {
@@ -172,6 +212,12 @@ body {
     max-width: 330px;
   }
 
+  .notify-menu {
+    left: 0;
+    right: 0;
+    width: 100%;
+  }
+
   .grid {
     grid-template-columns: 1fr;
     gap: 22px;
@@ -223,9 +269,37 @@ body {
 <main class="container">
 
   <div class="topbar" id="topbar">
-    <button class="notify" id="notifyButton">
-      🔔 Enable 10-minute alerts
-    </button>
+
+    <div class="notify-wrap">
+
+      <button class="notify" id="notifyButton">
+        🔔 Enable 10-minute alerts
+      </button>
+
+      <div class="notify-menu" id="notifyMenu">
+
+        <button
+          class="notify-option"
+          id="turnOnOption">
+          🔔 Alerts ON
+        </button>
+
+        <button
+          class="notify-option"
+          id="turnOffOption">
+          🔕 Turn OFF
+        </button>
+
+        <button
+          class="notify-option"
+          id="turnOffTodayOption">
+          🌙 Turn OFF for today
+        </button>
+
+      </div>
+
+    </div>
+
   </div>
 
   <section class="grid" id="timerGrid"></section>
@@ -248,9 +322,26 @@ const LOCAL_TZ =
 
 const NEW_YORK_TZ = "America/New_York";
 
-const grid = document.getElementById("timerGrid");
-const topbar = document.getElementById("topbar");
-const notifyButton = document.getElementById("notifyButton");
+const grid =
+  document.getElementById("timerGrid");
+
+const topbar =
+  document.getElementById("topbar");
+
+const notifyButton =
+  document.getElementById("notifyButton");
+
+const notifyMenu =
+  document.getElementById("notifyMenu");
+
+const turnOnOption =
+  document.getElementById("turnOnOption");
+
+const turnOffOption =
+  document.getElementById("turnOffOption");
+
+const turnOffTodayOption =
+  document.getElementById("turnOffTodayOption");
 
 let notificationTimer = null;
 let scheduledNotificationKey = null;
@@ -276,7 +367,8 @@ function partsInZone(date, tz) {
   .forEach(part => {
 
     if (part.type !== "literal") {
-      parts[part.type] = Number(part.value);
+      parts[part.type] =
+        Number(part.value);
     }
 
   });
@@ -291,16 +383,18 @@ function partsInZone(date, tz) {
 
 function zoneOffsetMinutes(date, tz) {
 
-  const p = partsInZone(date, tz);
+  const p =
+    partsInZone(date, tz);
 
-  const asUTC = Date.UTC(
-    p.year,
-    p.month - 1,
-    p.day,
-    p.hour,
-    p.minute,
-    p.second
-  );
+  const asUTC =
+    Date.UTC(
+      p.year,
+      p.month - 1,
+      p.day,
+      p.hour,
+      p.minute,
+      p.second
+    );
 
   return Math.round(
     (asUTC - date.getTime()) / 60000
@@ -308,23 +402,32 @@ function zoneOffsetMinutes(date, tz) {
 }
 
 
-function zonedDate(year, month, day, hour, minute, tz) {
+function zonedDate(
+  year,
+  month,
+  day,
+  hour,
+  minute,
+  tz
+) {
 
-  let guess = Date.UTC(
-    year,
-    month - 1,
-    day,
-    hour,
-    minute,
-    0
-  );
+  let guess =
+    Date.UTC(
+      year,
+      month - 1,
+      day,
+      hour,
+      minute,
+      0
+    );
 
   for (let i = 0; i < 3; i++) {
 
-    const offset = zoneOffsetMinutes(
-      new Date(guess),
-      tz
-    );
+    const offset =
+      zoneOffsetMinutes(
+        new Date(guess),
+        tz
+      );
 
     guess =
       Date.UTC(
@@ -348,29 +451,32 @@ function getNextSession(session) {
 
   const now = new Date();
 
-  const ny = partsInZone(
-    now,
-    NEW_YORK_TZ
-  );
+  const ny =
+    partsInZone(
+      now,
+      NEW_YORK_TZ
+    );
 
-  let target = zonedDate(
-    ny.year,
-    ny.month,
-    ny.day,
-    session.hour,
-    session.minute,
-    NEW_YORK_TZ
-  );
+  let target =
+    zonedDate(
+      ny.year,
+      ny.month,
+      ny.day,
+      session.hour,
+      session.minute,
+      NEW_YORK_TZ
+    );
 
   if (target <= now) {
 
-    const tomorrow = new Date(
-      Date.UTC(
-        ny.year,
-        ny.month - 1,
-        ny.day + 1
-      )
-    );
+    const tomorrow =
+      new Date(
+        Date.UTC(
+          ny.year,
+          ny.month - 1,
+          ny.day + 1
+        )
+      );
 
     const tomorrowNY =
       partsInZone(
@@ -378,14 +484,15 @@ function getNextSession(session) {
         NEW_YORK_TZ
       );
 
-    target = zonedDate(
-      tomorrowNY.year,
-      tomorrowNY.month,
-      tomorrowNY.day,
-      session.hour,
-      session.minute,
-      NEW_YORK_TZ
-    );
+    target =
+      zonedDate(
+        tomorrowNY.year,
+        tomorrowNY.month,
+        tomorrowNY.day,
+        session.hour,
+        session.minute,
+        NEW_YORK_TZ
+      );
   }
 
   return target;
@@ -435,6 +542,8 @@ function getIcon(hour) {
   return "☀️";
 }
 
+
+/* ---------- COUNTDOWN ---------- */
 
 function countdown(ms) {
 
@@ -501,12 +610,20 @@ function setWeekend() {
 
 /* ---------- NOTIFICATION STORAGE ---------- */
 
-const ALERTS_KEY = "crtTimerAlertsEnabled";
-const ALERTS_OFF_TODAY_KEY = "crtTimerAlertsOffToday";
+const ALERTS_KEY =
+  "crtTimerAlertsEnabled";
+
+const ALERTS_OFF_TODAY_KEY =
+  "crtTimerAlertsOffToday";
+
 
 function alertsEnabled() {
 
-  return localStorage.getItem(ALERTS_KEY) === "true";
+  return (
+    localStorage.getItem(
+      ALERTS_KEY
+    ) === "true"
+  );
 }
 
 
@@ -599,22 +716,37 @@ function updateNotificationButton() {
 }
 
 
-/* ---------- CLEAR TIMER ---------- */
+/* ---------- CLEAR NOTIFICATION TIMER ---------- */
 
 function clearNotificationTimer() {
 
-  if (notificationTimer !== null) {
+  if (
+    notificationTimer !== null
+  ) {
 
-    clearTimeout(notificationTimer);
+    clearTimeout(
+      notificationTimer
+    );
 
     notificationTimer = null;
   }
 
-  scheduledNotificationKey = null;
+  scheduledNotificationKey =
+    null;
 }
 
 
-/* ---------- ENABLE NOTIFICATIONS ---------- */
+/* ---------- CLOSE MENU ---------- */
+
+function closeNotificationMenu() {
+
+  notifyMenu.classList.remove(
+    "show"
+  );
+}
+
+
+/* ---------- ENABLE ---------- */
 
 async function enableNotifications() {
 
@@ -641,7 +773,9 @@ async function enableNotifications() {
   const permission =
     await Notification.requestPermission();
 
-  if (permission === "granted") {
+  if (
+    permission === "granted"
+  ) {
 
     setAlertsEnabled(true);
 
@@ -669,6 +803,8 @@ function turnOffAlerts() {
   clearNotificationTimer();
 
   updateNotificationButton();
+
+  closeNotificationMenu();
 }
 
 
@@ -683,33 +819,18 @@ function turnOffToday() {
   clearNotificationTimer();
 
   updateNotificationButton();
+
+  closeNotificationMenu();
 }
 
 
-/* ---------- NOTIFICATION CLICK ---------- */
+/* ---------- BUTTON ---------- */
 
 async function handleNotificationButton() {
 
-  if (!("Notification" in window)) {
-    return;
-  }
-
-  if (alertsOffToday()) {
-
-    const answer =
-      confirm(
-        "Alerts are off for today. Turn them back ON?"
-      );
-
-    if (answer) {
-
-      localStorage.removeItem(
-        ALERTS_OFF_TODAY_KEY
-      );
-
-      await enableNotifications();
-    }
-
+  if (
+    !("Notification" in window)
+  ) {
     return;
   }
 
@@ -718,14 +839,18 @@ async function handleNotificationButton() {
     alertsEnabled()
   ) {
 
-    const answer =
-      confirm(
-        "What would you like to do?\n\nOK = Turn OFF alerts\nCancel = Keep alerts ON"
-      );
+    notifyMenu.classList.toggle(
+      "show"
+    );
 
-    if (answer) {
-      turnOffAlerts();
-    }
+    return;
+  }
+
+  if (alertsOffToday()) {
+
+    notifyMenu.classList.toggle(
+      "show"
+    );
 
     return;
   }
@@ -753,16 +878,20 @@ async function scheduleNextNotification() {
 
   const upcoming =
     sessions
-      .map((session, index) => ({
-        index,
-        target: getNextSession(session)
-      }))
+      .map(
+        (session, index) => ({
+          index,
+          target:
+            getNextSession(session)
+        })
+      )
       .sort(
         (a, b) =>
           a.target - b.target
       );
 
-  const next = upcoming[0];
+  const next =
+    upcoming[0];
 
   const notifyAt =
     next.target.getTime() -
@@ -781,57 +910,67 @@ async function scheduleNextNotification() {
     notifyAt - Date.now();
 
   if (delay <= 0) {
-
     return;
   }
 
   clearNotificationTimer();
 
-  scheduledNotificationKey = key;
+  scheduledNotificationKey =
+    key;
 
   notificationTimer =
-    setTimeout(async () => {
+    setTimeout(
+      async () => {
 
-      try {
+        try {
 
-        if (
-          Notification.permission === "granted" &&
-          alertsEnabled() &&
-          !alertsOffToday()
-        ) {
+          if (
+            Notification.permission ===
+              "granted" &&
+            alertsEnabled() &&
+            !alertsOffToday()
+          ) {
 
-          const registration =
-            await navigator.serviceWorker.ready;
+            const registration =
+              await navigator
+                .serviceWorker
+                .ready;
 
-          await registration.showNotification(
-            "CRT Timer",
-            {
-              body:
-                "Session starts in 10 minutes.",
-              tag:
-                "crt-10-minute",
-              icon:
-                "./icon-192.png",
-              badge:
-                "./icon-192.png"
-            }
+            await registration
+              .showNotification(
+                "CRT Timer",
+                {
+                  body:
+                    "Session starts in 10 minutes.",
+                  tag:
+                    "crt-10-minute",
+                  icon:
+                    "./icon-192.png",
+                  badge:
+                    "./icon-192.png"
+                }
+              );
+          }
+
+        } catch (error) {
+
+          console.log(
+            "Notification error:",
+            error
           );
         }
 
-      } catch (error) {
+        notificationTimer =
+          null;
 
-        console.log(
-          "Notification error:",
-          error
-        );
-      }
+        scheduledNotificationKey =
+          null;
 
-      notificationTimer = null;
-      scheduledNotificationKey = null;
+        scheduleNextNotification();
 
-      scheduleNextNotification();
-
-    }, delay);
+      },
+      delay
+    );
 }
 
 
@@ -846,11 +985,29 @@ function updateTimer() {
     return;
   }
 
-  topbar.style.display = "flex";
+  topbar.style.display =
+    "flex";
 
-  grid.className = "grid";
+  grid.className =
+    "grid";
 
-  const now = new Date();
+  const now =
+    new Date();
+
+  /*
+    IMPORTANT FIX:
+
+    Recalculate every session
+    from the current time.
+
+    If a session has reached
+    its exact time, getNextSession()
+    automatically moves it to the
+    next occurrence.
+
+    Therefore the countdown cannot
+    remain stuck at 0 seconds.
+  */
 
   const upcoming =
     sessions.map(
@@ -887,8 +1044,17 @@ function updateTimer() {
       const isNext =
         index === nextIndex;
 
+      const remaining =
+        Math.max(
+          0,
+          item.target.getTime() -
+          now.getTime()
+        );
+
       const card =
-        document.createElement("article");
+        document.createElement(
+          "article"
+        );
 
       card.className =
         isNext
@@ -903,12 +1069,16 @@ function updateTimer() {
 
         <div class="icon-box">
           <span class="icon">
-            ${getIcon(item.session.hour)}
+            ${getIcon(
+              item.session.hour
+            )}
           </span>
         </div>
 
         <div class="time">
-          ${formatLocal(item.target)}
+          ${formatLocal(
+            item.target
+          )}
         </div>
 
         <div class="timezone">
@@ -918,7 +1088,9 @@ function updateTimer() {
         <div class="new-york">
           New York:
           <strong>
-            ${formatNewYork(item.target)}
+            ${formatNewYork(
+              item.target
+            )}
           </strong>
         </div>
 
@@ -927,7 +1099,7 @@ function updateTimer() {
             ? `
               <div class="countdown">
                 ${countdown(
-                  item.target - now
+                  remaining
                 )}
               </div>
             `
@@ -944,12 +1116,53 @@ function updateTimer() {
 }
 
 
-/* ---------- START ---------- */
+/* ---------- EVENTS ---------- */
 
 notifyButton.addEventListener(
   "click",
   handleNotificationButton
 );
+
+turnOnOption.addEventListener(
+  "click",
+  async () => {
+
+    closeNotificationMenu();
+
+    await enableNotifications();
+  }
+);
+
+turnOffOption.addEventListener(
+  "click",
+  turnOffAlerts
+);
+
+turnOffTodayOption.addEventListener(
+  "click",
+  turnOffToday
+);
+
+
+/* Close menu when clicking outside */
+
+document.addEventListener(
+  "click",
+  event => {
+
+    if (
+      !event.target.closest(
+        ".notify-wrap"
+      )
+    ) {
+
+      closeNotificationMenu();
+    }
+  }
+);
+
+
+/* ---------- START ---------- */
 
 updateNotificationButton();
 
@@ -963,7 +1176,9 @@ setInterval(
 
 /* ---------- SERVICE WORKER ---------- */
 
-if ("serviceWorker" in navigator) {
+if (
+  "serviceWorker" in navigator
+) {
 
   window.addEventListener(
     "load",
