@@ -543,6 +543,10 @@ function getIcon(hour) {
    COUNTDOWN
 ========================================================= */
 
+let countdownTarget = null;
+let countdownSessionKey = null;
+
+
 function countdown(ms) {
 
   ms = Math.max(0, ms);
@@ -562,16 +566,52 @@ function countdown(ms) {
     totalSeconds % 60;
 
   if (hours > 0) {
-
     return `Next in ${hours}h ${minutes}m`;
   }
 
   if (minutes > 0) {
-
     return `Next in ${minutes}m ${seconds}s`;
   }
 
   return `Next in ${seconds}s`;
+}
+
+
+function getCountdownTarget() {
+
+  const now = new Date();
+
+  const upcoming =
+    sessions
+      .map((session, index) => ({
+        session,
+        index,
+        target: getNextSession(session)
+      }))
+      .sort(
+        (a, b) =>
+          a.target.getTime() -
+          b.target.getTime()
+      );
+
+  const next = upcoming[0];
+
+  const key =
+    next.target.toISOString();
+
+  if (
+    countdownTarget === null ||
+    countdownSessionKey !== key
+  ) {
+
+    countdownTarget =
+      next.target;
+
+    countdownSessionKey =
+      key;
+  }
+
+  return countdownTarget;
 }
 
 
@@ -833,8 +873,6 @@ async function handleNotificationButton() {
     return;
   }
 
-  // If notifications are already allowed,
-  // always open the menu.
   if (
     Notification.permission === "granted"
   ) {
@@ -846,8 +884,6 @@ async function handleNotificationButton() {
     return;
   }
 
-  // If notifications were blocked by the browser,
-  // tell the user how to fix it.
   if (
     Notification.permission === "denied"
   ) {
@@ -859,7 +895,6 @@ async function handleNotificationButton() {
     return;
   }
 
-  // Otherwise ask for notification permission.
   await enableNotifications();
 }
 
@@ -1025,6 +1060,17 @@ function renderTimer() {
     }
   }
 
+  /*
+    Reset the stored countdown target
+    whenever the timer cards are rebuilt.
+  */
+
+  countdownTarget =
+    upcoming[nextIndex].target;
+
+  countdownSessionKey =
+    countdownTarget.toISOString();
+
   grid.innerHTML = "";
 
   upcoming.forEach(
@@ -1121,27 +1167,20 @@ function updateCountdownOnly() {
     return;
   }
 
-  const now = new Date();
+  const target =
+    getCountdownTarget();
 
-  const upcoming =
-    sessions
-      .map(session => ({
-        target:
-          getNextSession(session)
-      }))
-      .sort(
-        (a, b) =>
-          a.target - b.target
-      );
-
-  const nextTarget =
-    upcoming[0].target;
+  const now =
+    new Date();
 
   const remaining =
-    nextTarget.getTime() -
+    target.getTime() -
     now.getTime();
 
   if (remaining <= 0) {
+
+    countdownTarget = null;
+    countdownSessionKey = null;
 
     renderTimer();
 
@@ -1165,6 +1204,9 @@ document.addEventListener(
       document.visibilityState ===
       "visible"
     ) {
+
+      countdownTarget = null;
+      countdownSessionKey = null;
 
       renderTimer();
     }
@@ -1229,7 +1271,7 @@ renderTimer();
 
 setInterval(
   updateCountdownOnly,
-  250
+  1000
 );
 
 
