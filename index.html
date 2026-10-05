@@ -833,9 +833,10 @@ async function handleNotificationButton() {
     return;
   }
 
+  // If notifications are already allowed,
+  // always open the menu.
   if (
-    Notification.permission === "granted" &&
-    alertsEnabled()
+    Notification.permission === "granted"
   ) {
 
     notifyMenu.classList.toggle(
@@ -845,15 +846,20 @@ async function handleNotificationButton() {
     return;
   }
 
-  if (alertsOffToday()) {
+  // If notifications were blocked by the browser,
+  // tell the user how to fix it.
+  if (
+    Notification.permission === "denied"
+  ) {
 
-    notifyMenu.classList.toggle(
-      "show"
+    alert(
+      "Notifications are blocked for this site. Please allow notifications in your browser settings."
     );
 
     return;
   }
 
+  // Otherwise ask for notification permission.
   await enableNotifications();
 }
 
@@ -1135,11 +1141,6 @@ function updateCountdownOnly() {
     nextTarget.getTime() -
     now.getTime();
 
-  /*
-    If the session has just passed,
-    rebuild the cards immediately.
-  */
-
   if (remaining <= 0) {
 
     renderTimer();
@@ -1225,14 +1226,6 @@ document.addEventListener(
 updateNotificationButton();
 
 renderTimer();
-
-/*
-  The interval no longer rebuilds the
-  whole page every second.
-
-  It only updates the countdown text
-  using the real current time.
-*/
 
 setInterval(
   updateCountdownOnly,
