@@ -278,21 +278,15 @@ body {
 
       <div class="notify-menu" id="notifyMenu">
 
-        <button
-          class="notify-option"
-          id="turnOnOption">
+        <button class="notify-option" id="turnOnOption">
           🔔 Alerts ON
         </button>
 
-        <button
-          class="notify-option"
-          id="turnOffOption">
+        <button class="notify-option" id="turnOffOption">
           🔕 Turn OFF
         </button>
 
-        <button
-          class="notify-option"
-          id="turnOffTodayOption">
+        <button class="notify-option" id="turnOffTodayOption">
           🌙 Turn OFF for today
         </button>
 
@@ -347,7 +341,9 @@ let notificationTimer = null;
 let scheduledNotificationKey = null;
 
 
-/* ---------- TIMEZONE HELPERS ---------- */
+/* =========================================================
+   TIMEZONE HELPERS
+========================================================= */
 
 function partsInZone(date, tz) {
 
@@ -367,8 +363,7 @@ function partsInZone(date, tz) {
   .forEach(part => {
 
     if (part.type !== "literal") {
-      parts[part.type] =
-        Number(part.value);
+      parts[part.type] = Number(part.value);
     }
 
   });
@@ -383,18 +378,16 @@ function partsInZone(date, tz) {
 
 function zoneOffsetMinutes(date, tz) {
 
-  const p =
-    partsInZone(date, tz);
+  const p = partsInZone(date, tz);
 
-  const asUTC =
-    Date.UTC(
-      p.year,
-      p.month - 1,
-      p.day,
-      p.hour,
-      p.minute,
-      p.second
-    );
+  const asUTC = Date.UTC(
+    p.year,
+    p.month - 1,
+    p.day,
+    p.hour,
+    p.minute,
+    p.second
+  );
 
   return Math.round(
     (asUTC - date.getTime()) / 60000
@@ -411,15 +404,14 @@ function zonedDate(
   tz
 ) {
 
-  let guess =
-    Date.UTC(
-      year,
-      month - 1,
-      day,
-      hour,
-      minute,
-      0
-    );
+  let guess = Date.UTC(
+    year,
+    month - 1,
+    day,
+    hour,
+    minute,
+    0
+  );
 
   for (let i = 0; i < 3; i++) {
 
@@ -445,7 +437,9 @@ function zonedDate(
 }
 
 
-/* ---------- NEXT SESSION ---------- */
+/* =========================================================
+   NEXT SESSION
+========================================================= */
 
 function getNextSession(session) {
 
@@ -499,7 +493,9 @@ function getNextSession(session) {
 }
 
 
-/* ---------- FORMATTING ---------- */
+/* =========================================================
+   FORMATTING
+========================================================= */
 
 function formatLocal(date) {
 
@@ -543,31 +539,35 @@ function getIcon(hour) {
 }
 
 
-/* ---------- COUNTDOWN ---------- */
+/* =========================================================
+   COUNTDOWN
+========================================================= */
 
 function countdown(ms) {
 
-  let seconds =
-    Math.max(
-      0,
-      Math.floor(ms / 1000)
-    );
+  ms = Math.max(0, ms);
+
+  let totalSeconds =
+    Math.ceil(ms / 1000);
 
   const hours =
-    Math.floor(seconds / 3600);
+    Math.floor(totalSeconds / 3600);
 
-  seconds %= 3600;
+  totalSeconds %= 3600;
 
   const minutes =
-    Math.floor(seconds / 60);
+    Math.floor(totalSeconds / 60);
 
-  seconds %= 60;
+  const seconds =
+    totalSeconds % 60;
 
   if (hours > 0) {
+
     return `Next in ${hours}h ${minutes}m`;
   }
 
   if (minutes > 0) {
+
     return `Next in ${minutes}m ${seconds}s`;
   }
 
@@ -575,7 +575,9 @@ function countdown(ms) {
 }
 
 
-/* ---------- WEEKEND ---------- */
+/* =========================================================
+   WEEKEND
+========================================================= */
 
 function isWeekend() {
 
@@ -608,7 +610,9 @@ function setWeekend() {
 }
 
 
-/* ---------- NOTIFICATION STORAGE ---------- */
+/* =========================================================
+   NOTIFICATION STORAGE
+========================================================= */
 
 const ALERTS_KEY =
   "crtTimerAlertsEnabled";
@@ -638,9 +642,7 @@ function setAlertsEnabled(value) {
 
 function todayKey() {
 
-  const now = new Date();
-
-  return now.toLocaleDateString(
+  return new Date().toLocaleDateString(
     "en-CA",
     {
       timeZone: LOCAL_TZ
@@ -668,7 +670,9 @@ function setAlertsOffToday() {
 }
 
 
-/* ---------- NOTIFICATION BUTTON ---------- */
+/* =========================================================
+   NOTIFICATION UI
+========================================================= */
 
 function updateNotificationButton() {
 
@@ -716,28 +720,6 @@ function updateNotificationButton() {
 }
 
 
-/* ---------- CLEAR NOTIFICATION TIMER ---------- */
-
-function clearNotificationTimer() {
-
-  if (
-    notificationTimer !== null
-  ) {
-
-    clearTimeout(
-      notificationTimer
-    );
-
-    notificationTimer = null;
-  }
-
-  scheduledNotificationKey =
-    null;
-}
-
-
-/* ---------- CLOSE MENU ---------- */
-
 function closeNotificationMenu() {
 
   notifyMenu.classList.remove(
@@ -746,7 +728,28 @@ function closeNotificationMenu() {
 }
 
 
-/* ---------- ENABLE ---------- */
+/* =========================================================
+   NOTIFICATION TIMER
+========================================================= */
+
+function clearNotificationTimer() {
+
+  if (notificationTimer !== null) {
+
+    clearTimeout(
+      notificationTimer
+    );
+
+    notificationTimer = null;
+  }
+
+  scheduledNotificationKey = null;
+}
+
+
+/* =========================================================
+   ENABLE NOTIFICATIONS
+========================================================= */
 
 async function enableNotifications() {
 
@@ -794,8 +797,6 @@ async function enableNotifications() {
 }
 
 
-/* ---------- TURN OFF ---------- */
-
 function turnOffAlerts() {
 
   setAlertsEnabled(false);
@@ -807,8 +808,6 @@ function turnOffAlerts() {
   closeNotificationMenu();
 }
 
-
-/* ---------- TURN OFF TODAY ---------- */
 
 function turnOffToday() {
 
@@ -824,13 +823,13 @@ function turnOffToday() {
 }
 
 
-/* ---------- BUTTON ---------- */
+/* =========================================================
+   NOTIFICATION BUTTON
+========================================================= */
 
 async function handleNotificationButton() {
 
-  if (
-    !("Notification" in window)
-  ) {
+  if (!("Notification" in window)) {
     return;
   }
 
@@ -859,7 +858,9 @@ async function handleNotificationButton() {
 }
 
 
-/* ---------- SCHEDULE NOTIFICATION ---------- */
+/* =========================================================
+   SCHEDULE NOTIFICATION
+========================================================= */
 
 async function scheduleNextNotification() {
 
@@ -960,11 +961,9 @@ async function scheduleNextNotification() {
           );
         }
 
-        notificationTimer =
-          null;
+        notificationTimer = null;
 
-        scheduledNotificationKey =
-          null;
+        scheduledNotificationKey = null;
 
         scheduleNextNotification();
 
@@ -974,9 +973,11 @@ async function scheduleNextNotification() {
 }
 
 
-/* ---------- MAIN TIMER ---------- */
+/* =========================================================
+   BUILD TIMER
+========================================================= */
 
-function updateTimer() {
+function renderTimer() {
 
   if (isWeekend()) {
 
@@ -985,29 +986,11 @@ function updateTimer() {
     return;
   }
 
-  topbar.style.display =
-    "flex";
+  topbar.style.display = "flex";
 
-  grid.className =
-    "grid";
+  grid.className = "grid";
 
-  const now =
-    new Date();
-
-  /*
-    IMPORTANT FIX:
-
-    Recalculate every session
-    from the current time.
-
-    If a session has reached
-    its exact time, getNextSession()
-    automatically moves it to the
-    next occurrence.
-
-    Therefore the countdown cannot
-    remain stuck at 0 seconds.
-  */
+  const now = new Date();
 
   const upcoming =
     sessions.map(
@@ -1043,13 +1026,6 @@ function updateTimer() {
 
       const isNext =
         index === nextIndex;
-
-      const remaining =
-        Math.max(
-          0,
-          item.target.getTime() -
-          now.getTime()
-        );
 
       const card =
         document.createElement(
@@ -1097,9 +1073,12 @@ function updateTimer() {
         ${
           isNext
             ? `
-              <div class="countdown">
+              <div
+                class="countdown"
+                id="mainCountdown">
                 ${countdown(
-                  remaining
+                  item.target.getTime() -
+                  now.getTime()
                 )}
               </div>
             `
@@ -1116,7 +1095,86 @@ function updateTimer() {
 }
 
 
-/* ---------- EVENTS ---------- */
+/* =========================================================
+   UPDATE COUNTDOWN ONLY
+========================================================= */
+
+function updateCountdownOnly() {
+
+  if (isWeekend()) {
+    return;
+  }
+
+  const countdownElement =
+    document.getElementById(
+      "mainCountdown"
+    );
+
+  if (!countdownElement) {
+    renderTimer();
+    return;
+  }
+
+  const now = new Date();
+
+  const upcoming =
+    sessions
+      .map(session => ({
+        target:
+          getNextSession(session)
+      }))
+      .sort(
+        (a, b) =>
+          a.target - b.target
+      );
+
+  const nextTarget =
+    upcoming[0].target;
+
+  const remaining =
+    nextTarget.getTime() -
+    now.getTime();
+
+  /*
+    If the session has just passed,
+    rebuild the cards immediately.
+  */
+
+  if (remaining <= 0) {
+
+    renderTimer();
+
+    return;
+  }
+
+  countdownElement.textContent =
+    countdown(remaining);
+}
+
+
+/* =========================================================
+   APP VISIBILITY
+========================================================= */
+
+document.addEventListener(
+  "visibilitychange",
+  () => {
+
+    if (
+      document.visibilityState ===
+      "visible"
+    ) {
+
+      renderTimer();
+    }
+
+  }
+);
+
+
+/* =========================================================
+   EVENTS
+========================================================= */
 
 notifyButton.addEventListener(
   "click",
@@ -1143,9 +1201,6 @@ turnOffTodayOption.addEventListener(
   turnOffToday
 );
 
-
-/* Close menu when clicking outside */
-
 document.addEventListener(
   "click",
   event => {
@@ -1158,23 +1213,36 @@ document.addEventListener(
 
       closeNotificationMenu();
     }
+
   }
 );
 
 
-/* ---------- START ---------- */
+/* =========================================================
+   START
+========================================================= */
 
 updateNotificationButton();
 
-updateTimer();
+renderTimer();
+
+/*
+  The interval no longer rebuilds the
+  whole page every second.
+
+  It only updates the countdown text
+  using the real current time.
+*/
 
 setInterval(
-  updateTimer,
-  1000
+  updateCountdownOnly,
+  250
 );
 
 
-/* ---------- SERVICE WORKER ---------- */
+/* =========================================================
+   SERVICE WORKER
+========================================================= */
 
 if (
   "serviceWorker" in navigator
